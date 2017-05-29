@@ -226,7 +226,7 @@ Tshirt Small
 ```
 
 The django ORM hides the `ProductSize` mapping table (through relation) by
-default, but it's possible to defined it yourself. For a many-to-many relation,
+default, but it's possible to define it yourself. For a many-to-many relation,
 django models both sides as lists.
 
 ```python
@@ -244,5 +244,84 @@ Large
 Jumper
 ```
 
-## ORM Relationships
+## ORM Models
 
+Django models represent database tables as classes, rows as instances of those
+classes, and fields as attributes.
+
+Here we'll see three models, with the relationships between them defined as
+fields.
+
+```python
+
+class Category(models.Model):
+    name = models.CharField(max_length=32)
+
+class Feature(models.Model):
+    name = models.CharField(max_length=32)
+    value = models.CharField(max_length=32)
+    visible = models.BooleanField(default=True)
+
+class Product(models.Model):
+    name = models.CharField(max_length=32)
+    category = models.ForeignKey(Category)
+    features = models.ManyToManyField(Feature)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+
+```
+
+`Product` is the interesting model here, as it has both a `ForeignKey` field
+pointing to `Category`, and a `ManyToMany` field pointing to multiple
+`Features`.
+
+### Foreign Key
+
+As we learned before, foreign keys are represented with simple attribute
+access. Given a `product`, we access the category via the `product.category`
+field.
+
+But what is Django doing to get the data from the database? How many queries
+does it need to fetch both `product` and `product.category`? In our examples
+above, we seen that all of this data can be generated with a single SQL query.
+
+If we turn on SQL logging (see above), we can see the queries being executed
+as we work.
+
+```python
+In [24]: product = Product.objects.get(pk=1)
+(0.001)
+SELECT "shop_product"."id", "shop_product"."name", "shop_product"."category_id", "shop_product"."price"
+FROM "shop_product"
+WHERE "shop_product"."id" = 1
+
+In [25]: category = product.category
+(0.001)
+SELECT "shop_category"."id", "shop_category"."name"
+FROM "shop_category"
+WHERE "shop_category"."id" = 2
+```
+
+Django fetches data linked by `ForeignKey` *on-demand*. The main reason for
+doing this, is that you could have an extremely deep hierarchy of ForeignKeys,
+but you probably wouldn't want Django to pull of that data back.
+
+But there *is* a way to be explicit, and tell Django which relations it should
+fetch *eagerly*.
+
+#### Select Related
+
+If you want Django to join the data via SQL and return it in a single query,
+you can use [select_related()](https://docs.djangoproject.com/en/1.11/ref/models/querysets/#select-related).
+
+```python
+In [26]: product = Product.objects.select_related('category').get(pk=1)
+(0.001)
+SELECT
+"shop_product"."id", "shop_product"."name", "shop_product"."category_id", "shop_product"."price", "shop_category"."id", "shop_category"."name"
+FROM "shop_product"
+INNER JOIN "shop_category" ON ("shop_product"."category_id" = "shop_category"."id")
+WHERE "shop_product"."id" = 1;
+
+In [27]: category = product.category
+
+```
