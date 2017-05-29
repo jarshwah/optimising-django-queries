@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+  db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=shop
+      - POSTGRES_PASSWORD=shop
+    ports:
+    - "25432:5432"

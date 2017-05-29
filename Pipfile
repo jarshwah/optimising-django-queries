@@ -1,0 +1,10 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[packages]
+Django = "*"
+ipython = "*"
+flake8 = "*"
+isort = "*"
+psycopg2 = "*"
