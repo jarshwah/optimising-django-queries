@@ -95,6 +95,7 @@ relationships are commonly called Many-To-One (M-1) because there are Many
 products that map to One Category.
 
 Product
+
 | id        | name            | category_id |
 |:----------|:----------------|:------------|
 | 1         | Samsung 65 inch | 1           |
@@ -102,6 +103,7 @@ Product
 | 3         | Juicer          | 2           |
 
 Category
+
 | id        | name        |
 |:----------|:------------|
 | 1         | TVs         |
@@ -188,18 +190,21 @@ Consider a Product table and a Size table, where multiple products will share
 similar sizing.
 
 Product
+
 | id        | name   |
 |:----------|:-------|
 | 1         | Jumper |
 | 2         | Tshirt |
 
 Size
+
 | id        | name     |
 |:----------|:---------|
 | 1         | Small    |
 | 2         | Large    |
 
 Product Size
+
 | id        | product_id | size_id |
 |:----------|:-----------|:---------
 | 1         | 1          | 1       |
