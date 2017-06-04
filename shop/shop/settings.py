@@ -13,6 +13,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django_extensions',
     'shop',
 ]
 ROOT_URLCONF = 'shop.urls'

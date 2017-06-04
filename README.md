@@ -2,9 +2,9 @@
 
 Django ORM basics, with some tips and tricks, for writing optimal queries.
 
-## Getting Started
+## [](#getting-started)Getting Started
 
-### Setup
+### [](#setup)Setup
 
 Make sure you have python 3.6 installed, and is the default python3 on your
 system. There's a docker-compose file included for running postgres in a docker
@@ -26,9 +26,9 @@ cd shop
 ./manage.py migrate
 ```
 
-The above commands will install all the dependencies needed,
+The above commands will install all the dependencies needed.
 
-### Query Logging
+### [](#query-logging)Query Logging
 
 When developing it's a good idea to have logging configured so that queries
 are printed to the console. A neverending stream of SQL queries in your
@@ -82,12 +82,12 @@ In [4]: print(connection.queries)
 []
 ```
 
-## Database Relations
+## [](#database-relations)Database Relations
 
 The Django ORM (Object-Relational Mapper) is an abstraction that uses python
 objects to represent database tables and the relations between them.
 
-### Foreign Keys
+### [](#foreign-key-columns)Foreign Keys
 
 Foreign Keys are the primary way of defining how two tables are related. They
 provide a link from one table to the key of another table. These kind of
@@ -140,7 +140,7 @@ The equivalent `python` code would be:
 You can see that accessing a foreign key in python is equivalent to accessing
 an attribute or property.
 
-### Multivalue Relations
+### [](#multivalue-relations)Multivalue Relations
 
 It's also possible to start from `Category` and find all linked `Products`. But
 since we represent data as rows, and a `Category` can have multiple `Products`
@@ -179,7 +179,7 @@ Samsung 65 inch
 Samsung 75 inch
 ```
 
-### Many To Many Relations
+### [](#m2m-relations)Many To Many Relations
 
 There's a third type of relationship in a database called Many To Many (M-M),
 which models multiple rows in a table linking to multiple rows in another
@@ -231,7 +231,7 @@ django models both sides as lists.
 
 ```python
 >>> product = Product.objects.get(name='Jumper')
->>> for size in product.size_set.all():
+>>> for size in product.sizes.all():
 ...     print(size.name)
 
 Small
@@ -244,10 +244,10 @@ Large
 Jumper
 ```
 
-## ORM Models
+## [](#orm-models)ORM Models
 
 Django models represent database tables as classes, rows as instances of those
-classes, and fields as attributes.
+classes, and columns as attributes.
 
 Here we'll see three models, with the relationships between them defined as
 fields.
@@ -274,7 +274,7 @@ class Product(models.Model):
 pointing to `Category`, and a `ManyToMany` field pointing to multiple
 `Features`.
 
-### Foreign Key
+### [](#foreign-key-field)ForeignKey
 
 As we learned before, foreign keys are represented with simple attribute
 access. Given a `product`, we access the category via the `product.category`
@@ -303,12 +303,12 @@ WHERE "shop_category"."id" = 2
 
 Django fetches data linked by `ForeignKey` *on-demand*. The main reason for
 doing this, is that you could have an extremely deep hierarchy of ForeignKeys,
-but you probably wouldn't want Django to pull of that data back.
+but you probably wouldn't want Django to pull all of that data back.
 
 But there *is* a way to be explicit, and tell Django which relations it should
 fetch *eagerly*.
 
-#### Select Related
+#### [](#select-related)Select Related
 
 If you want Django to join the data via SQL and return it in a single query,
 you can use [select_related()](https://docs.djangoproject.com/en/1.11/ref/models/querysets/#select-related).
@@ -325,3 +325,238 @@ WHERE "shop_product"."id" = 1;
 In [27]: category = product.category
 
 ```
+
+Here we see that, indeed, a single query is executed to retrieve the product
+and the category.
+
+### [](#n-plus-1)1 + N queries
+
+You might have heard the term `1 + N` or `N + 1` queries. It's a common
+pitfall when using ORMs to retrieve data from a database.
+
+Let's say we have 3 products, and we want to show the product name and the
+category it came from. First, we'll do it the naive way:
+
+```python
+In [27]: for p in Product.objects.all():
+   ...:     print(p.name, p.category.name)
+   ...:
+(0.001) SELECT
+    "shop_product"."id", "shop_product"."name",
+    "shop_product"."category_id", "shop_product"."price"
+FROM "shop_product";
+(0.000) SELECT
+    "shop_category"."id", "shop_category"."name"
+FROM "shop_category"
+WHERE "shop_category"."id" = 1;
+
+Samsung 65 inch TVs
+
+(0.001) SELECT "shop_category"."id", "shop_category"."name"
+FROM "shop_category" WHERE "shop_category"."id" = 1;
+
+Samsung 75 inch TVs
+
+(0.000) SELECT "shop_category"."id", "shop_category"."name"
+FROM "shop_category" WHERE "shop_category"."id" = 2;
+
+Juicer Homeware
+```
+
+We executed a single query (1) for the product, then we executed an extra query
+for each product to get the category (N). This introduces a lot of latency, as
+each query is a new network request, and the database has to recompile and
+execute lots of very similar queries.
+
+Using `select_related` avoids this issue, allowing data for all Products and
+Categories to be retrieved once.
+
+```python
+In [28]: for p in Product.objects.select_related('category').all():
+   ...:     print(p.name, p.category.name)
+   ...:
+(0.005) SELECT "shop_product"."id", "shop_product"."name",
+"shop_product"."category_id", "shop_product"."price",
+"shop_category"."id", "shop_category"."name"
+FROM "shop_product"
+INNER JOIN "shop_category"
+ON ("shop_product"."category_id" = "shop_category"."id");
+Samsung 65 inch TVs
+Samsung 75 inch TVs
+Juicer Homeware
+```
+
+### [](#m2m-field)ManyToManyField
+
+`ManyToManyField`'s models a list of data. You generally iterate over many
+to many fields. Given a `product`, we access its features via the
+`product.features` field.
+
+Remembering that Django tries to avoid returning duplicate data, it must
+execute two queries in this instance. One to get the Product, and another to
+get the features for that product. Again, with SQL logging activated, we can
+see exactly what's happening under the hood.
+
+```python
+In [29]: for p in Product.objects.all()[0:3]:
+   ...:     print('Product: ', p.name)
+   ...:     for f in p.features.all():
+   ...:         print(f.name, ': ', f.value)
+   ...:     print()
+   ...:
+
+(0.001)
+SELECT "shop_product"."id", "shop_product"."name", "shop_product"."category_id", "shop_product"."price"
+FROM "shop_product";
+
+Product:  Samsung 65 inch
+
+(0.008) SELECT
+"shop_feature"."id", "shop_feature"."name", "shop_feature"."value", "shop_feature"."visible"
+FROM "shop_feature"
+INNER JOIN "shop_product_features"
+ON ("shop_feature"."id" = "shop_product_features"."feature_id")
+WHERE "shop_product_features"."product_id" = 1 ;
+
+Supplier :  Samsung
+Size :  65 inches
+Colour :  Black
+
+Product:  Samsung 75 inch
+(0.001)
+SELECT "shop_feature"."id", "shop_feature"."name", "shop_feature"."value", "shop_feature"."visible"
+FROM "shop_feature"
+INNER JOIN "shop_product_features"
+ON ("shop_feature"."id" = "shop_product_features"."feature_id")
+WHERE "shop_product_features"."product_id" = 2;
+
+Supplier :  Samsung
+Size :  75 inches
+Colour :  Black
+
+Product:  Juicer
+(0.001)
+SELECT "shop_feature"."id", "shop_feature"."name", "shop_feature"."value", "shop_feature"."visible"
+FROM "shop_feature"
+INNER JOIN "shop_product_features"
+ON ("shop_feature"."id" = "shop_product_features"."feature_id")
+WHERE "shop_product_features"."product_id" = 3;
+
+Colour :  LightSeaGreen
+Colour :  SpringGreen
+Colour :  Azure
+
+```
+
+This is a perfect example of a `1 + N` query. We executed `1` query to fetch
+products. Then we issued `1` query for each product `N` to get the features.
+
+Luckily, Django has a way to reduce the number of queries executed when dealing
+with lists of related data too.
+
+#### [](#prefetch-related)Prefetch Related
+
+The [prefetch_related()](https://docs.djangoproject.com/en/1.11/ref/models/querysets/#prefetch-related)
+queryset method is what Django provides to help minimise the number of queries
+required to get the data we need. It's more complicated than `select_related`
+but it comes with a lot of power.
+
+We can't actually get the data we need with a single query. But we can do it in
+two, which is `1 + 1` queries. One for the product, and then a single query to
+fetch all of the features for all of the products.
+
+```python
+In [30]: for p in Product.objects.prefetch_related('features').all()[0:3]:
+   ...:     print('Product: ', p.name)
+   ...:     for f in p.features.all():
+   ...:         print(f.name, ': ', f.value)
+   ...:     print()
+   ...:
+(0.001)
+SELECT "shop_product"."id", "shop_product"."name", "shop_product"."category_id", "shop_product"."price"
+FROM "shop_product";
+(0.001)
+SELECT
+("shop_product_features"."product_id") AS "_prefetch_related_val_product_id", "shop_feature"."id", "shop_feature"."name", "shop_feature"."value", "shop_feature"."visible"
+FROM "shop_feature"
+INNER JOIN "shop_product_features"
+ON ("shop_feature"."id" = "shop_product_features"."feature_id")
+WHERE "shop_product_features"."product_id" IN (1, 2, 3);
+
+Product:  Samsung 65 inch
+Supplier :  Samsung
+Size :  65 inches
+Colour :  Black
+
+Product:  Samsung 75 inch
+Supplier :  Samsung
+Size :  75 inches
+Colour :  Black
+
+Product:  Juicer
+Colour :  LightSeaGreen
+Colour :  SpringGreen
+Colour :  Azure
+```
+
+Prefetching works by issuing the first query, gathering all of the product
+`id`s returned, and then issuing the second query for all features that match
+the list of product `id`s. It then uses these features as a cache whenever you
+attempt to access `product.features.all()`.
+
+##### [](#prefetch-related-caveats)Prefetch Related Caveats
+
+With great power, comes great responsibility. There are a number of ways to
+abuse `prefetch_related`, or to skip using the cache you created and execute
+new queries.
+
+**Memory**
+
+Prefetching can end up using quite a bit of memory if there are lots of
+relations. If we were querying for 10,000 products, and each product had 10
+features, django would first issue a query to features with a `WHERE` clause
+containing 10,000 `id`s which is generally not good for a database. But then
+it'd return 100,000 features that it would have to keep cached in memory.
+
+**Filtering**
+
+Prefetching only works when you access the many to many field using `.all()`.
+But it *is* possible to further filter the many to many field using `.filter()`
+and other queryset methods.
+
+```python
+In [31]: product = Product.objects.prefetch_related('features').get(pk=1)
+
+(0.001)
+SELECT "shop_product"."id", "shop_product"."name", "shop_product"."category_id", "shop_product"."price"
+FROM "shop_product"
+WHERE "shop_product"."id" = 1; args=(1,)
+(0.001)
+SELECT ("shop_product_features"."product_id") AS "_prefetch_related_val_product_id", "shop_feature"."id", "shop_feature"."name", "shop_feature"."value", "shop_feature"."visible"
+FROM "shop_feature"
+INNER JOIN "shop_product_features"
+ON ("shop_feature"."id" = "shop_product_features"."feature_id")
+WHERE "shop_product_features"."product_id" IN (1);
+
+In [32]: product.features.get(name='Supplier').value
+
+(0.001)
+SELECT "shop_feature"."id", "shop_feature"."name", "shop_feature"."value", "shop_feature"."visible"
+FROM "shop_feature"
+INNER JOIN "shop_product_features" ON ("shop_feature"."id" = "shop_product_features"."feature_id")
+WHERE ("shop_product_features"."product_id" = 1 AND "shop_feature"."name" = 'Supplier');
+
+Samsung
+```
+
+Our cache isn't able to interpret extra database operations, so django is
+forced to execute another query.
+
+**iterator()**
+
+Django provides an [iterator()](https://docs.djangoproject.com/en/1.11/ref/models/querysets/#iterator)
+queryset method, which allows django to fetch instances as it iterates through
+a loop, rather than loading the entire result set in to memory at once. Since
+prefetch_related relies on the entire result being available so that it can
+collect all the `id`s, `refetch_related` has no effect when used with
+`iterator`.
