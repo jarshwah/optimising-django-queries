@@ -560,3 +560,46 @@ a loop, rather than loading the entire result set in to memory at once. Since
 prefetch_related relies on the entire result being available so that it can
 collect all the `id`s, `refetch_related` has no effect when used with
 `iterator`.
+
+### [](#reverse-relations)Reverse Relations
+
+Given a `ForeignKey` field linking a `product` to a `category`, Django will
+setup the reverse link from a `category` to the set (or list) of `products`.
+The convention is to name the reverse field `modelname_set`, but this can be
+overridden.
+
+For our examples above, we'd access the products of a category using
+`product_set.all()`.
+
+```python
+In [9]: category = Category.objects.get(pk=1)
+(0.001)
+SELECT "shop_category"."id", "shop_category"."name"
+FROM "shop_category" WHERE "shop_category"."id" = 1;
+
+In [10]: products = list(category.product_set.all())
+(0.001)
+SELECT "shop_product"."id", "shop_product"."name", "shop_product"."category_id", "shop_product"."price"
+FROM "shop_product"
+WHERE "shop_product"."category_id" = 1;
+```
+
+Reverse relations function identically to `ManyToMany` fields, so they can be
+prefetched, filtered, or ordered.
+
+### [](#prefetch-or-select-related)Prefetch Related vs Select Related
+
+**select_related**
+
+Use `select_related()` on `ForeignKey` fields **only**. It has no affect on
+`ManyToManyField`s or reverse relations.
+
+> select_related is used to access a single related object
+
+**prefetch_related**
+
+Use `prefetch_related()` on `ManyToManyField`s or reverse relations. It can
+also be used on `ForeignKey` fields, but `select_related` is nearly always a
+better choice.
+
+> prefetch_related is used to access multiple related objects
