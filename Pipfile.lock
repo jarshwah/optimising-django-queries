@@ -1,0 +1,95 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "0d4442e575b9fd0d7d1e0b89d85ec1cd81a5c1322a300d2f84665250d123c94e"
+        },
+        "requires": {},
+        "sources": [
+            {
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "Django": {
+            "version": "==1.11.2"
+        },
+        "Faker": {
+            "version": "==0.7.15"
+        },
+        "Pygments": {
+            "version": "==2.2.0"
+        },
+        "appnope": {
+            "version": "==0.1.0"
+        },
+        "decorator": {
+            "version": "==4.0.11"
+        },
+        "django-extensions": {
+            "version": "==1.7.9"
+        },
+        "flake8": {
+            "version": "==3.3.0"
+        },
+        "ipython": {
+            "version": "==6.1.0"
+        },
+        "ipython_genutils": {
+            "version": "==0.2.0"
+        },
+        "isort": {
+            "version": "==4.2.13"
+        },
+        "jedi": {
+            "version": "==0.10.2"
+        },
+        "mccabe": {
+            "version": "==0.6.1"
+        },
+        "pexpect": {
+            "version": "==4.2.1"
+        },
+        "pickleshare": {
+            "version": "==0.7.4"
+        },
+        "prompt_toolkit": {
+            "version": "==1.0.14"
+        },
+        "psycopg2": {
+            "version": "==2.7.1"
+        },
+        "ptyprocess": {
+            "version": "==0.5.1"
+        },
+        "pycodestyle": {
+            "version": "==2.3.1"
+        },
+        "pyflakes": {
+            "version": "==1.5.0"
+        },
+        "python-dateutil": {
+            "version": "==2.6.0"
+        },
+        "pytz": {
+            "version": "==2017.2"
+        },
+        "setuptools": {
+            "version": "==36.0.1"
+        },
+        "simplegeneric": {
+            "version": "==0.8.1"
+        },
+        "six": {
+            "version": "==1.10.0"
+        },
+        "traitlets": {
+            "version": "==4.3.2"
+        },
+        "wcwidth": {
+            "version": "==0.1.7"
+        }
+    },
+    "develop": {}
+}
